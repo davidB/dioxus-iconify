@@ -1,6 +1,6 @@
 # dioxus-iconify
 
-> CLI tool for generating Iconify icons in Dioxus projects
+> CLI tool for vendoring [Iconify](https://icon-sets.iconify.design/) icons (material, lucid, heroicons,....) in Dioxus projects
 
 [![Crates.io](https://img.shields.io/crates/v/dioxus-iconify.svg)](https://crates.io/crates/dioxus-iconify)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
