@@ -3,7 +3,9 @@
 > CLI tool for vendoring [Iconify](https://icon-sets.iconify.design/) icons (material, lucid, heroicons,....) in Dioxus projects
 
 [![Crates.io](https://img.shields.io/crates/v/dioxus-iconify.svg)](https://crates.io/crates/dioxus-iconify)
-[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/crates/l/dioxus-iconify)
+](LICENSE)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/davidB/dioxus-iconify/total)
 
 Use any of the **275,000+ icons** from [Iconify](https://iconify.design) in your Dioxus applications with a simple CLI tool. Icons are generated at build time as Rust source code, eliminating runtime dependencies.
 
