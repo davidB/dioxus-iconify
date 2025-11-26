@@ -1,6 +1,6 @@
 [package]
 name = "dioxus-iconify"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2024"
 license = "CC0-1.0"
 description = "CLI tool for vendoring [Iconify](https://icon-sets.iconify.design/) icons (material, lucid, heroicons,....) in Dioxus projects"
