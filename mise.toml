@@ -63,6 +63,13 @@ run = [
 ]
 wait_for = ["lint:*"]
 
+[tasks."test:demoapp"]
+run = [
+  "cargo run -- update --output examples/demo-app/src/icons",
+  "cd examples/demo-app; cargo build",
+]
+wait_for = ["info", "test:unit"]
+
 # [tasks."test:coverage"]
 # description = "run test coverage to help identify code not executed on tests (!= code tested)"
 # env = { RUSTFLAGS="-Cinstrument-coverage", LLVM_PROFILE_FILE="target/test-coverage/data/%p-%m.profraw" }

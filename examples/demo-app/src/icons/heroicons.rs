@@ -3,11 +3,13 @@
 
 use super::IconData;
 
+#[allow(non_upper_case_globals)]
 pub const ArrowLeft: IconData = IconData {
-    name: "heroicons:arrow-left",
-    body: r#"<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>"#,
-    view_box: "0 0 24 24",
-    width: "24",
-    height: "24",
+  name: "heroicons:arrow-left",
+  body: r#"<path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/>"#,
+  view_box: "0 0 24 24",
+  width: "24",
+  height: "24",
 };
+
 
