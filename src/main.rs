@@ -48,20 +48,21 @@ enum Commands {
     // },
 }
 
-fn main() {
-    if let Err(err) = run() {
+#[tokio::main(flavor = "current_thread")]
+async fn main() {
+    if let Err(err) = run().await {
         eprintln!("Error: {:#}", err);
         std::process::exit(1);
     }
 }
 
-fn run() -> Result<()> {
+async fn run() -> Result<()> {
     let cli = Cli::parse();
     let generator = Generator::new(cli.output.clone());
 
     match cli.command {
         Commands::Add { icons } => {
-            add_icons(&generator, &icons)?;
+            add_icons(&generator, &icons).await?;
         }
         Commands::Init => {
             init_icons_dir(&generator)?;
@@ -70,14 +71,14 @@ fn run() -> Result<()> {
             list_icons(&generator)?;
         }
         Commands::Update => {
-            update_icons(&generator)?;
+            update_icons(&generator).await?;
         }
     }
 
     Ok(())
 }
 
-fn add_icons(generator: &Generator, icon_ids: &[String]) -> Result<()> {
+async fn add_icons(generator: &Generator, icon_ids: &[String]) -> Result<()> {
     println!("📦 Fetching {} icon(s) from Iconify API...", icon_ids.len());
 
     let client = IconifyClient::new()?;
@@ -92,6 +93,7 @@ fn add_icons(generator: &Generator, icon_ids: &[String]) -> Result<()> {
         print!("  Fetching {}... ", icon_id);
         let icon = client
             .fetch_icon(&identifier.collection, &identifier.icon_name)
+            .await
             .context(format!("Failed to fetch icon: {}", icon_id))?;
 
         println!("✓");
@@ -167,7 +169,7 @@ fn list_icons(generator: &Generator) -> Result<()> {
     Ok(())
 }
 
-fn update_icons(generator: &Generator) -> Result<()> {
+async fn update_icons(generator: &Generator) -> Result<()> {
     println!("🔄 Updating all icons...");
 
     // Get all existing icon identifiers
@@ -200,7 +202,10 @@ fn update_icons(generator: &Generator) -> Result<()> {
 
         // Fetch icon from API
         print!("  Fetching {}... ", icon_id);
-        match client.fetch_icon(&identifier.collection, &identifier.icon_name) {
+        match client
+            .fetch_icon(&identifier.collection, &identifier.icon_name)
+            .await
+        {
             Ok(icon) => {
                 println!("✓");
                 icons_to_update.push((identifier, icon));

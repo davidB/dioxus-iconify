@@ -7,9 +7,9 @@ use std::fs;
 use std::process::Command;
 use tempfile::TempDir;
 
-#[test]
+#[tokio::test]
 #[ignore] // Requires internet connection to fetch icons
-fn test_generated_code_compiles_without_warnings() -> Result<()> {
+async fn test_generated_code_compiles_without_warnings() -> Result<()> {
     // Create a temporary directory for our test project
     let temp_dir = TempDir::new()?;
     let project_dir = temp_dir.path();
@@ -26,7 +26,9 @@ fn test_generated_code_compiles_without_warnings() -> Result<()> {
 
     for icon_id in &test_icons {
         let identifier = IconIdentifier::parse(icon_id)?;
-        let icon = client.fetch_icon(&identifier.collection, &identifier.icon_name)?;
+        let icon = client
+            .fetch_icon(&identifier.collection, &identifier.icon_name)
+            .await?;
         icons_to_add.push((identifier, icon));
     }
 
