@@ -29,14 +29,14 @@ struct IconifyApiResponse {
 
 /// Iconify API client
 pub struct IconifyClient {
-    client: reqwest::blocking::Client,
+    client: reqwest::Client,
     base_url: String,
 }
 
 impl IconifyClient {
     /// Create a new Iconify API client
     pub fn new() -> Result<Self> {
-        let client = reqwest::blocking::Client::builder()
+        let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
             .context("Failed to create HTTP client")?;
@@ -48,26 +48,30 @@ impl IconifyClient {
     }
 
     /// Fetch a single icon from the Iconify API
-    pub fn fetch_icon(&self, collection: &str, icon_name: &str) -> Result<IconifyIcon> {
+    pub async fn fetch_icon(&self, collection: &str, icon_name: &str) -> Result<IconifyIcon> {
         let url = format!("{}/{}.json?icons={}", self.base_url, collection, icon_name);
 
-        let response = self.client.get(&url).send().context(format!(
-            "Failed to fetch icon {
-
-}:{}",
-            collection, icon_name
-        ))?;
+        let response = self
+            .client
+            .get(&url)
+            .send()
+            .await
+            .context(format!("Failed to fetch icon {}:{}", collection, icon_name))?;
 
         if !response.status().is_success() {
+            let status = response.status();
+            let text = response.text().await.unwrap_or_default();
             return Err(anyhow!(
                 "API request failed with status {}: {}",
-                response.status(),
-                response.text().unwrap_or_default()
+                status,
+                text
             ));
         }
 
-        let api_response: IconifyApiResponse =
-            response.json().context("Failed to parse API response")?;
+        let api_response: IconifyApiResponse = response
+            .json()
+            .await
+            .context("Failed to parse API response")?;
 
         let icon = api_response
             .icons
@@ -171,9 +175,10 @@ mod tests {
     #[case("heroicons", "arrow-left")]
     #[case("lucide", "settings")]
     #[ignore] // Requires internet connection
-    fn test_fetch_icon(#[case] collection: &str, #[case] icon_name: &str) {
+    #[tokio::test]
+    async fn test_fetch_icon(#[case] collection: &str, #[case] icon_name: &str) {
         let client = IconifyClient::new().unwrap();
-        let icon = client.fetch_icon(collection, icon_name).unwrap();
+        let icon = client.fetch_icon(collection, icon_name).await.unwrap();
 
         assert!(!icon.body.is_empty());
         assert!(icon.width.is_some());
@@ -181,11 +186,13 @@ mod tests {
         assert!(icon.view_box.is_some());
     }
 
-    #[test]
+    #[tokio::test]
     #[ignore] // Requires internet connection
-    fn test_fetch_nonexistent_icon() {
+    async fn test_fetch_nonexistent_icon() {
         let client = IconifyClient::new().unwrap();
-        let result = client.fetch_icon("mdi", "this-icon-does-not-exist-12345");
+        let result = client
+            .fetch_icon("mdi", "this-icon-does-not-exist-12345")
+            .await;
 
         assert!(result.is_err());
     }
