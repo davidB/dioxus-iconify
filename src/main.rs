@@ -227,6 +227,9 @@ async fn update_icons(generator: &Generator) -> Result<()> {
     println!("\n📝 Regenerating Rust code...");
     generator.add_icons(&icons_to_update)?;
 
+    // Force regenerate mod.rs to ensure Icon component is up to date
+    generator.regenerate_mod_rs()?;
+
     println!(
         "\n✨ Updated {} icon(s) successfully!",
         icons_to_update.len()
