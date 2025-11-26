@@ -142,6 +142,18 @@ impl Generator {
         Ok(icons_by_collection)
     }
 
+    /// Get all icon identifiers from generated files
+    pub fn get_all_icon_identifiers(&self) -> Result<Vec<String>> {
+        let icons_by_collection = self.list_icons()?;
+        let mut all_icons = Vec::new();
+
+        for icon_names in icons_by_collection.values() {
+            all_icons.extend(icon_names.clone());
+        }
+
+        Ok(all_icons)
+    }
+
     /// Initialize the icons directory with mod.rs if it doesn't exist
     pub fn init(&self) -> Result<()> {
         // Create icons directory if it doesn't exist
@@ -498,6 +510,58 @@ mod tests {
         let heroicons_icons = icons.get("heroicons").unwrap();
         assert_eq!(heroicons_icons.len(), 1, "heroicons should have 1 icon");
         assert!(heroicons_icons.contains(&"heroicons:arrow-left".to_string()));
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_get_all_icon_identifiers() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let icons_dir = temp_dir.path().join("icons");
+        let generator = Generator::new(icons_dir.clone());
+
+        // Test with no icons
+        let empty_icons = generator.get_all_icon_identifiers()?;
+        assert!(
+            empty_icons.is_empty(),
+            "Should return empty vec for no icons"
+        );
+
+        // Add some test icons
+        let test_icon = IconifyIcon {
+            body: r#"<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>"#.to_string(),
+            width: Some(24),
+            height: Some(24),
+            view_box: Some("0 0 24 24".to_string()),
+        };
+
+        let identifier1 = IconIdentifier::parse("mdi:home")?;
+        let identifier2 = IconIdentifier::parse("mdi:settings")?;
+        let identifier3 = IconIdentifier::parse("heroicons:arrow-left")?;
+
+        generator.add_icons(&[
+            (identifier1, test_icon.clone()),
+            (identifier2, test_icon.clone()),
+            (identifier3, test_icon.clone()),
+        ])?;
+
+        // Get all identifiers
+        let all_icons = generator.get_all_icon_identifiers()?;
+
+        // Should have 3 icons
+        assert_eq!(all_icons.len(), 3, "Should have 3 icons");
+        assert!(
+            all_icons.contains(&"mdi:home".to_string()),
+            "Should contain mdi:home"
+        );
+        assert!(
+            all_icons.contains(&"mdi:settings".to_string()),
+            "Should contain mdi:settings"
+        );
+        assert!(
+            all_icons.contains(&"heroicons:arrow-left".to_string()),
+            "Should contain heroicons:arrow-left"
+        );
 
         Ok(())
     }

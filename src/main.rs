@@ -36,16 +36,16 @@ enum Commands {
     /// List all generated icons
     #[command(visible_alias = "l")]
     List,
+
+    /// Update all icons by re-fetching from API
+    #[command(visible_alias = "u")]
+    Update,
     // Future commands (not yet implemented)
     // /// Remove icons from your project
     // #[command(visible_alias = "r")]
     // Remove {
     //     icons: Vec<String>,
     // },
-    //
-    // /// Update all icons by re-fetching from API
-    // #[command(visible_alias = "u")]
-    // Update,
 }
 
 fn main() {
@@ -68,6 +68,9 @@ fn run() -> Result<()> {
         }
         Commands::List => {
             list_icons(&generator)?;
+        }
+        Commands::Update => {
+            update_icons(&generator)?;
         }
     }
 
@@ -159,6 +162,76 @@ fn list_icons(generator: &Generator) -> Result<()> {
             println!("  {}", icon);
         }
         println!();
+    }
+
+    Ok(())
+}
+
+fn update_icons(generator: &Generator) -> Result<()> {
+    println!("🔄 Updating all icons...");
+
+    // Get all existing icon identifiers
+    let icon_ids = generator.get_all_icon_identifiers()?;
+
+    if icon_ids.is_empty() {
+        println!("No icons to update.");
+        println!("\n💡 Add icons first with: dioxus-iconify add <icon>");
+        println!("   Example: dioxus-iconify add mdi:home");
+        return Ok(());
+    }
+
+    println!("📦 Found {} icon(s) to update", icon_ids.len());
+    println!("\n🌐 Fetching latest versions from Iconify API...");
+
+    let client = IconifyClient::new()?;
+    let mut icons_to_update = Vec::new();
+    let mut failed_icons = Vec::new();
+
+    for icon_id in &icon_ids {
+        // Parse icon identifier
+        let identifier = match IconIdentifier::parse(icon_id) {
+            Ok(id) => id,
+            Err(e) => {
+                eprintln!("  ⚠ Skipping invalid icon identifier {}: {}", icon_id, e);
+                failed_icons.push(icon_id.clone());
+                continue;
+            }
+        };
+
+        // Fetch icon from API
+        print!("  Fetching {}... ", icon_id);
+        match client.fetch_icon(&identifier.collection, &identifier.icon_name) {
+            Ok(icon) => {
+                println!("✓");
+                icons_to_update.push((identifier, icon));
+            }
+            Err(e) => {
+                println!("✗");
+                eprintln!("    Error: {}", e);
+                failed_icons.push(icon_id.clone());
+            }
+        }
+    }
+
+    if icons_to_update.is_empty() {
+        eprintln!("\n❌ Failed to fetch any icons");
+        return Ok(());
+    }
+
+    // Regenerate code
+    println!("\n📝 Regenerating Rust code...");
+    generator.add_icons(&icons_to_update)?;
+
+    println!(
+        "\n✨ Updated {} icon(s) successfully!",
+        icons_to_update.len()
+    );
+
+    if !failed_icons.is_empty() {
+        println!("\n⚠ Failed to update {} icon(s):", failed_icons.len());
+        for icon_id in &failed_icons {
+            println!("  - {}", icon_id);
+        }
     }
 
     Ok(())
