@@ -63,10 +63,15 @@ run = [
 ]
 wait_for = ["lint:*"]
 
-[tasks."test:demoapp"]
+[tasks."test:demo-app"]
+depends = ["build"]
+dir = "examples/demo-app"
 run = [
-  "cargo run -- update --output examples/demo-app/src/icons",
-  "cd examples/demo-app; cargo build",
+  "../../target/debug/dioxus-iconify update",
+  "cargo --locked fmt --all -- --check",
+  "cargo --locked clippy --workspace --all-features --all-targets --no-deps",
+  "cargo --locked build",
+
 ]
 wait_for = ["info", "test:unit"]
 

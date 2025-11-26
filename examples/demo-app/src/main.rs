@@ -5,10 +5,8 @@
 
 use dioxus::prelude::*;
 
-// Uncomment these lines after generating icons:
-// mod icons;
-// use icons::Icon;
-// use icons::{mdi, heroicons};
+mod icons;
+use crate::icons::*;
 
 fn main() {
     dioxus::launch(App);
@@ -27,99 +25,49 @@ fn App() -> Element {
                 code { "dioxus-iconify" }
                 "."
             }
-
             div {
                 style: "margin-top: 2rem;",
 
-                h2 { "📦 Step 1: Generate Icons" }
-                pre {
-                    style: "background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto;",
-                    code {
-                        "# From the demo-app directory:\n"
-                        "dioxus-iconify add mdi:home mdi:account heroicons:arrow-left"
+                h2 { "🖼️ Icon Examples" }
+
+                div {
+                    style: "display: flex; gap: 2rem; align-items: center; margin-top: 1rem;",
+
+                    div {
+                        h3 { "Home (default)" }
+                        Icon { data: mdi::Home }
+                    }
+
+                    div {
+                        h3 { "Home (large, red)" }
+                        Icon {
+                            data: mdi::Home,
+                            width: "48",
+                            height: "48",
+                            fill: "red",
+                        }
+                    }
+
+                    div {
+                        h3 { "Account (custom)" }
+                        Icon {
+                            data: mdi::Account,
+                            width: "32",
+                            height: "32",
+                            fill: "blue",
+                        }
+                    }
+
+                    div {
+                        h3 { "Arrow Left" }
+                        Icon {
+                            data: heroicons::ArrowLeft,
+                            width: "24",
+                            height: "24",
+                        }
                     }
                 }
             }
-
-            div {
-                style: "margin-top: 2rem;",
-
-                h2 { "✨ Step 2: Use Icons in Your Components" }
-                p { "After generating, uncomment the imports in main.rs and use the icons:" }
-
-                // Example code (commented out until icons are generated)
-                pre {
-                    style: "background: #f5f5f5; padding: 1rem; border-radius: 4px; overflow-x: auto;",
-                    code {
-"mod icons;
-use icons::Icon;
-use icons::{{mdi, heroicons}};
-
-// Basic usage
-Icon {{ data: mdi::Home }}
-
-// With custom size and color
-Icon {{
-    data: mdi::Account,
-    width: \"32\",
-    height: \"32\",
-    fill: \"blue\",
-}}
-
-// With Tailwind classes
-Icon {{
-    data: heroicons::ArrowLeft,
-    class: \"w-6 h-6 text-gray-500\",
-}}
-"
-                    }
-                }
-            }
-
-            // Uncomment to see the icons in action:
-            // div {
-            //     style: "margin-top: 2rem;",
-            //
-            //     h2 { "🖼️ Icon Examples" }
-            //
-            //     div {
-            //         style: "display: flex; gap: 2rem; align-items: center; margin-top: 1rem;",
-            //
-            //         div {
-            //             h3 { "Home (default)" }
-            //             Icon { data: mdi::Home }
-            //         }
-            //
-            //         div {
-            //             h3 { "Home (large, red)" }
-            //             Icon {
-            //                 data: mdi::Home,
-            //                 width: "48",
-            //                 height: "48",
-            //                 fill: "red",
-            //             }
-            //         }
-            //
-            //         div {
-            //             h3 { "Account (custom)" }
-            //             Icon {
-            //                 data: mdi::Account,
-            //                 width: "32",
-            //                 height: "32",
-            //                 fill: "blue",
-            //             }
-            //         }
-            //
-            //         div {
-            //             h3 { "Arrow Left" }
-            //             Icon {
-            //                 data: heroicons::ArrowLeft,
-            //                 width: "24",
-            //                 height: "24",
-            //             }
-            //         }
-            //     }
-            // }
         }
     }
 }
