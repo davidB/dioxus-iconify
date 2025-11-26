@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use heck::ToPascalCase;
 
 /// Represents a parsed icon identifier (collection:icon-name)

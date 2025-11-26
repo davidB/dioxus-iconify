@@ -36,7 +36,6 @@ enum Commands {
     /// Initialize the icons directory (creates mod.rs)
     #[command(visible_alias = "i")]
     Init,
-
     // Future commands (not yet implemented)
     // /// Remove icons from your project
     // #[command(visible_alias = "r")]
@@ -102,15 +101,24 @@ fn add_icons(generator: &Generator, icon_ids: &[String]) -> Result<()> {
     println!("\n📝 Generating Rust code...");
     generator.add_icons(&icons_to_add)?;
 
-    println!("\n✨ Done! Added {} icon(s) to your project.", icon_ids.len());
+    println!(
+        "\n✨ Done! Added {} icon(s) to your project.",
+        icon_ids.len()
+    );
     println!("\n💡 Usage:");
     println!("   use icons::Icon;");
     for (identifier, _) in &icons_to_add {
-        println!("   use icons::{}::{};", identifier.module_name(), identifier.to_const_name());
+        println!(
+            "   use icons::{}::{};",
+            identifier.module_name(),
+            identifier.to_const_name()
+        );
     }
-    println!("\n   Icon {{ data: {}::{} }}",
-             icons_to_add[0].0.module_name(),
-             icons_to_add[0].0.to_const_name());
+    println!(
+        "\n   Icon {{ data: {}::{} }}",
+        icons_to_add[0].0.module_name(),
+        icons_to_add[0].0.to_const_name()
+    );
 
     Ok(())
 }

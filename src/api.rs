@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -51,13 +51,12 @@ impl IconifyClient {
     pub fn fetch_icon(&self, collection: &str, icon_name: &str) -> Result<IconifyIcon> {
         let url = format!("{}/{}.json?icons={}", self.base_url, collection, icon_name);
 
-        let response = self
-            .client
-            .get(&url)
-            .send()
-            .context(format!("Failed to fetch icon {
+        let response = self.client.get(&url).send().context(format!(
+            "Failed to fetch icon {
 
-}:{}", collection, icon_name))?;
+}:{}",
+            collection, icon_name
+        ))?;
 
         if !response.status().is_success() {
             return Err(anyhow!(
@@ -67,14 +66,19 @@ impl IconifyClient {
             ));
         }
 
-        let api_response: IconifyApiResponse = response
-            .json()
-            .context("Failed to parse API response")?;
+        let api_response: IconifyApiResponse =
+            response.json().context("Failed to parse API response")?;
 
         let icon = api_response
             .icons
             .get(icon_name)
-            .ok_or_else(|| anyhow!("Icon '{}' not found in collection '{}'", icon_name, collection))?
+            .ok_or_else(|| {
+                anyhow!(
+                    "Icon '{}' not found in collection '{}'",
+                    icon_name,
+                    collection
+                )
+            })?
             .clone();
 
         // Use icon-specific dimensions or fall back to collection defaults
@@ -106,13 +110,15 @@ impl IconifyClient {
         }
 
         let icons_param = icon_names.join(",");
-        let url = format!("{}/{}.json?icons={}", self.base_url, collection, icons_param);
+        let url = format!(
+            "{}/{}.json?icons={}",
+            self.base_url, collection, icons_param
+        );
 
-        let response = self
-            .client
-            .get(&url)
-            .send()
-            .context(format!("Failed to fetch icons from collection '{}'", collection))?;
+        let response = self.client.get(&url).send().context(format!(
+            "Failed to fetch icons from collection '{}'",
+            collection
+        ))?;
 
         if !response.status().is_success() {
             return Err(anyhow!(
@@ -122,9 +128,8 @@ impl IconifyClient {
             ));
         }
 
-        let api_response: IconifyApiResponse = response
-            .json()
-            .context("Failed to parse API response")?;
+        let api_response: IconifyApiResponse =
+            response.json().context("Failed to parse API response")?;
 
         let default_width = api_response.width.unwrap_or(24);
         let default_height = api_response.height.unwrap_or(24);

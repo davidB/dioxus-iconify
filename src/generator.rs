@@ -55,7 +55,10 @@ impl IconConst {
             name: identifier.to_const_name(),
             full_icon_name: identifier.full_name.clone(),
             body: icon.body.clone(),
-            view_box: icon.view_box.clone().unwrap_or_else(|| "0 0 24 24".to_string()),
+            view_box: icon
+                .view_box
+                .clone()
+                .unwrap_or_else(|| "0 0 24 24".to_string()),
             width: icon.width.unwrap_or(24).to_string(),
             height: icon.height.unwrap_or(24).to_string(),
         }
@@ -84,15 +87,13 @@ impl Generator {
     pub fn init(&self) -> Result<()> {
         // Create icons directory if it doesn't exist
         if !self.icons_dir.exists() {
-            fs::create_dir_all(&self.icons_dir)
-                .context("Failed to create icons directory")?;
+            fs::create_dir_all(&self.icons_dir).context("Failed to create icons directory")?;
         }
 
         // Create mod.rs if it doesn't exist
         let mod_rs_path = self.icons_dir.join("mod.rs");
         if !mod_rs_path.exists() {
-            fs::write(&mod_rs_path, MOD_RS_TEMPLATE)
-                .context("Failed to create mod.rs")?;
+            fs::write(&mod_rs_path, MOD_RS_TEMPLATE).context("Failed to create mod.rs")?;
         }
 
         Ok(())
@@ -153,15 +154,19 @@ impl Generator {
         fs::write(&file_path, content)
             .context(format!("Failed to write collection file {:?}", file_path))?;
 
-        println!("✓ Updated {}.rs with {} icon(s)", module_name, new_icons.len());
+        println!(
+            "✓ Updated {}.rs with {} icon(s)",
+            module_name,
+            new_icons.len()
+        );
 
         Ok(())
     }
 
     /// Parse existing icons from a collection file
     fn parse_collection_file(&self, path: &Path) -> Result<BTreeMap<String, IconConst>> {
-        let content = fs::read_to_string(path)
-            .context(format!("Failed to read file {:?}", path))?;
+        let content =
+            fs::read_to_string(path).context(format!("Failed to read file {:?}", path))?;
 
         let mut icons = BTreeMap::new();
 
@@ -271,14 +276,17 @@ impl Generator {
         let mod_rs_path = self.icons_dir.join("mod.rs");
 
         // Read existing mod.rs
-        let content = fs::read_to_string(&mod_rs_path)
-            .context("Failed to read mod.rs")?;
+        let content = fs::read_to_string(&mod_rs_path).context("Failed to read mod.rs")?;
 
         // Extract existing module declarations
         let mut existing_modules: HashSet<String> = HashSet::new();
         for line in content.lines() {
             if line.trim().starts_with("pub mod ") {
-                if let Some(module_name) = line.trim().strip_prefix("pub mod ").and_then(|s| s.strip_suffix(';')) {
+                if let Some(module_name) = line
+                    .trim()
+                    .strip_prefix("pub mod ")
+                    .and_then(|s| s.strip_suffix(';'))
+                {
                     existing_modules.insert(module_name.trim().to_string());
                 }
             }
@@ -307,8 +315,7 @@ impl Generator {
                 new_content.push_str(&format!("pub mod {};\n", module));
             }
 
-            fs::write(&mod_rs_path, new_content)
-                .context("Failed to update mod.rs")?;
+            fs::write(&mod_rs_path, new_content).context("Failed to update mod.rs")?;
         }
 
         Ok(())
