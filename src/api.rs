@@ -164,12 +164,16 @@ impl Default for IconifyClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
-    #[test]
+    #[rstest]
+    #[case("mdi", "home")]
+    #[case("heroicons", "arrow-left")]
+    #[case("lucide", "settings")]
     #[ignore] // Requires internet connection
-    fn test_fetch_icon() {
+    fn test_fetch_icon(#[case] collection: &str, #[case] icon_name: &str) {
         let client = IconifyClient::new().unwrap();
-        let icon = client.fetch_icon("mdi", "home").unwrap();
+        let icon = client.fetch_icon(collection, icon_name).unwrap();
 
         assert!(!icon.body.is_empty());
         assert!(icon.width.is_some());

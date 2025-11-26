@@ -1,14 +1,10 @@
-mod api;
-mod generator;
-mod naming;
-
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
-use api::IconifyClient;
-use generator::Generator;
-use naming::IconIdentifier;
+use dioxus_iconify::api::IconifyClient;
+use dioxus_iconify::generator::Generator;
+use dioxus_iconify::naming::IconIdentifier;
 
 #[derive(Parser)]
 #[command(name = "dioxus-iconify")]

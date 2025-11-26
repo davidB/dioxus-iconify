@@ -108,6 +108,7 @@ fn is_rust_keyword(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rstest::rstest;
 
     #[test]
     fn test_parse_valid_identifier() {
@@ -117,43 +118,33 @@ mod tests {
         assert_eq!(id.full_name, "mdi:home");
     }
 
-    #[test]
-    fn test_parse_invalid_identifier() {
-        assert!(IconIdentifier::parse("invalid").is_err());
-        assert!(IconIdentifier::parse("too:many:colons").is_err());
-        assert!(IconIdentifier::parse(":empty-collection").is_err());
-        assert!(IconIdentifier::parse("empty-name:").is_err());
+    #[rstest]
+    #[case("invalid")]
+    #[case("too:many:colons")]
+    #[case(":empty-collection")]
+    #[case("empty-name:")]
+    fn test_parse_invalid_identifier(#[case] input: &str) {
+        assert!(IconIdentifier::parse(input).is_err());
     }
 
-    #[test]
-    fn test_module_name() {
-        let id = IconIdentifier::parse("mdi:home").unwrap();
-        assert_eq!(id.module_name(), "mdi");
-
-        let id = IconIdentifier::parse("simple-icons:github").unwrap();
-        assert_eq!(id.module_name(), "simple_icons");
+    #[rstest]
+    #[case("mdi:home", "mdi")]
+    #[case("simple-icons:github", "simple_icons")]
+    #[case("heroicons-outline:arrow", "heroicons_outline")]
+    fn test_module_name(#[case] input: &str, #[case] expected: &str) {
+        let id = IconIdentifier::parse(input).unwrap();
+        assert_eq!(id.module_name(), expected);
     }
 
-    #[test]
-    fn test_to_const_name() {
-        let id = IconIdentifier::parse("mdi:home").unwrap();
-        assert_eq!(id.to_const_name(), "Home");
-
-        let id = IconIdentifier::parse("heroicons:arrow-left").unwrap();
-        assert_eq!(id.to_const_name(), "ArrowLeft");
-
-        let id = IconIdentifier::parse("lucide:shopping-cart").unwrap();
-        assert_eq!(id.to_const_name(), "ShoppingCart");
-
-        let id = IconIdentifier::parse("mdi:numeric-1-box").unwrap();
-        assert_eq!(id.to_const_name(), "Numeric1Box");
-
-        // Test leading number
-        let id = IconIdentifier::parse("mdi:1password").unwrap();
-        assert_eq!(id.to_const_name(), "_1password");
-
-        // Test keyword
-        let id = IconIdentifier::parse("mdi:type").unwrap();
-        assert_eq!(id.to_const_name(), "TypeIcon");
+    #[rstest]
+    #[case("mdi:home", "Home")]
+    #[case("heroicons:arrow-left", "ArrowLeft")]
+    #[case("lucide:shopping-cart", "ShoppingCart")]
+    #[case("mdi:numeric-1-box", "Numeric1Box")]
+    #[case("mdi:1password", "_1password")] // Leading number
+    #[case("mdi:type", "TypeIcon")] // Rust keyword
+    fn test_to_const_name(#[case] input: &str, #[case] expected: &str) {
+        let id = IconIdentifier::parse(input).unwrap();
+        assert_eq!(id.to_const_name(), expected);
     }
 }
