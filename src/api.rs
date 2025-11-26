@@ -19,7 +19,7 @@ pub struct IconifyIcon {
 /// API response structure for icon data
 #[derive(Debug, Deserialize)]
 struct IconifyApiResponse {
-    prefix: String,
+    // prefix: String,
     icons: HashMap<String, IconifyIcon>,
     #[serde(default)]
     width: Option<u32>,
@@ -99,60 +99,60 @@ impl IconifyClient {
         })
     }
 
-    /// Fetch multiple icons from the same collection
-    pub fn fetch_icons(
-        &self,
-        collection: &str,
-        icon_names: &[String],
-    ) -> Result<HashMap<String, IconifyIcon>> {
-        if icon_names.is_empty() {
-            return Ok(HashMap::new());
-        }
+    // /// Fetch multiple icons from the same collection
+    // pub fn fetch_icons(
+    //     &self,
+    //     collection: &str,
+    //     icon_names: &[String],
+    // ) -> Result<HashMap<String, IconifyIcon>> {
+    //     if icon_names.is_empty() {
+    //         return Ok(HashMap::new());
+    //     }
 
-        let icons_param = icon_names.join(",");
-        let url = format!(
-            "{}/{}.json?icons={}",
-            self.base_url, collection, icons_param
-        );
+    //     let icons_param = icon_names.join(",");
+    //     let url = format!(
+    //         "{}/{}.json?icons={}",
+    //         self.base_url, collection, icons_param
+    //     );
 
-        let response = self.client.get(&url).send().context(format!(
-            "Failed to fetch icons from collection '{}'",
-            collection
-        ))?;
+    //     let response = self.client.get(&url).send().context(format!(
+    //         "Failed to fetch icons from collection '{}'",
+    //         collection
+    //     ))?;
 
-        if !response.status().is_success() {
-            return Err(anyhow!(
-                "API request failed with status {}: {}",
-                response.status(),
-                response.text().unwrap_or_default()
-            ));
-        }
+    //     if !response.status().is_success() {
+    //         return Err(anyhow!(
+    //             "API request failed with status {}: {}",
+    //             response.status(),
+    //             response.text().unwrap_or_default()
+    //         ));
+    //     }
 
-        let api_response: IconifyApiResponse =
-            response.json().context("Failed to parse API response")?;
+    //     let api_response: IconifyApiResponse =
+    //         response.json().context("Failed to parse API response")?;
 
-        let default_width = api_response.width.unwrap_or(24);
-        let default_height = api_response.height.unwrap_or(24);
+    //     let default_width = api_response.width.unwrap_or(24);
+    //     let default_height = api_response.height.unwrap_or(24);
 
-        // Process each icon and ensure they have dimensions
-        let mut result = HashMap::new();
-        for (name, mut icon) in api_response.icons {
-            let width = icon.width.unwrap_or(default_width);
-            let height = icon.height.unwrap_or(default_height);
+    //     // Process each icon and ensure they have dimensions
+    //     let mut result = HashMap::new();
+    //     for (name, mut icon) in api_response.icons {
+    //         let width = icon.width.unwrap_or(default_width);
+    //         let height = icon.height.unwrap_or(default_height);
 
-            icon.width = Some(width);
-            icon.height = Some(height);
-            icon.view_box = Some(
-                icon.view_box
-                    .clone()
-                    .unwrap_or_else(|| format!("0 0 {} {}", width, height)),
-            );
+    //         icon.width = Some(width);
+    //         icon.height = Some(height);
+    //         icon.view_box = Some(
+    //             icon.view_box
+    //                 .clone()
+    //                 .unwrap_or_else(|| format!("0 0 {} {}", width, height)),
+    //         );
 
-            result.insert(name, icon);
-        }
+    //         result.insert(name, icon);
+    //     }
 
-        Ok(result)
-    }
+    //     Ok(result)
+    // }
 }
 
 impl Default for IconifyClient {

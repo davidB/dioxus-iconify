@@ -37,11 +37,6 @@ impl IconIdentifier {
         })
     }
 
-    /// Get the filename for this icon's collection (e.g., "mdi.rs")
-    pub fn collection_filename(&self) -> String {
-        format!("{}.rs", self.collection.replace('-', "_"))
-    }
-
     /// Get the module name for this collection (e.g., "mdi")
     pub fn module_name(&self) -> String {
         self.collection.replace('-', "_")
@@ -53,7 +48,7 @@ impl IconIdentifier {
         let mut const_name = self.icon_name.to_pascal_case();
 
         // Handle leading numbers (Rust identifiers can't start with numbers)
-        if const_name.chars().next().map_or(false, |c| c.is_numeric()) {
+        if const_name.chars().next().is_some_and(|c| c.is_numeric()) {
             const_name = format!("_{}", const_name);
         }
 
@@ -131,12 +126,12 @@ mod tests {
     }
 
     #[test]
-    fn test_collection_filename() {
+    fn test_module_name() {
         let id = IconIdentifier::parse("mdi:home").unwrap();
-        assert_eq!(id.collection_filename(), "mdi.rs");
+        assert_eq!(id.module_name(), "mdi");
 
         let id = IconIdentifier::parse("simple-icons:github").unwrap();
-        assert_eq!(id.collection_filename(), "simple_icons.rs");
+        assert_eq!(id.module_name(), "simple_icons");
     }
 
     #[test]

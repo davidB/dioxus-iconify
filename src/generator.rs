@@ -179,14 +179,15 @@ impl Generator {
             let line = lines[i].trim();
 
             // Look for "pub const NAME: IconData"
-            if line.starts_with("pub const ") && line.contains(": IconData") {
-                if let Some(name_end) = line.find(':') {
-                    let name = line[10..name_end].trim().to_string();
+            if line.starts_with("pub const ")
+                && line.contains(": IconData")
+                && let Some(name_end) = line.find(':')
+            {
+                let name = line[10..name_end].trim().to_string();
 
-                    // Parse the IconData struct (next several lines)
-                    if let Some(icon_const) = self.parse_icon_data(&lines, &mut i, &name) {
-                        icons.insert(name, icon_const);
-                    }
+                // Parse the IconData struct (next several lines)
+                if let Some(icon_const) = self.parse_icon_data(&lines, &mut i, &name) {
+                    icons.insert(name, icon_const);
                 }
             }
 
@@ -281,14 +282,13 @@ impl Generator {
         // Extract existing module declarations
         let mut existing_modules: HashSet<String> = HashSet::new();
         for line in content.lines() {
-            if line.trim().starts_with("pub mod ") {
-                if let Some(module_name) = line
+            if line.trim().starts_with("pub mod ")
+                && let Some(module_name) = line
                     .trim()
                     .strip_prefix("pub mod ")
                     .and_then(|s| s.strip_suffix(';'))
-                {
-                    existing_modules.insert(module_name.trim().to_string());
-                }
+            {
+                existing_modules.insert(module_name.trim().to_string());
             }
         }
 
@@ -324,12 +324,11 @@ impl Generator {
 
 /// Extract a string value from a line like `name: "value",`
 fn extract_string_value(line: &str) -> String {
-    if let Some(start) = line.find('"') {
-        if let Some(end) = line.rfind('"') {
-            if end > start {
-                return line[start + 1..end].to_string();
-            }
-        }
+    if let Some(start) = line.find('"')
+        && let Some(end) = line.rfind('"')
+        && end > start
+    {
+        return line[start + 1..end].to_string();
     }
     String::new()
 }
