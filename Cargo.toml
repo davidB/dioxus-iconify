@@ -2,7 +2,7 @@
 name = "dioxus-iconify"
 version = "0.1.0"
 edition = "2024"
-license = "Apache-2.0"
+license = "CC0-1.0"
 description = "CLI tool for generating Iconify icons in Dioxus projects"
 repository = "https://github.com/cdviz-dev/dioxus-iconify"
 keywords = ["dioxus", "iconify", "icons", "cli", "code-generation"]
