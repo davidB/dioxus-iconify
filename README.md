@@ -27,6 +27,8 @@ cargo install dioxus-iconify
 
 ### Usage
 
+0. **Choose your icons** on [Iconify - home of open source icons](https://icon-sets.iconify.design/)
+
 1. **Add icons to your project**:
 
 ```bash
@@ -226,15 +228,16 @@ dioxus-iconify init
 
 ## 🆚 Comparison with Other Solutions
 
-| Feature         | dioxus-iconify | Embedded Libraries | SVG Files |
-| --------------- | -------------- | ------------------ | --------- |
-| Icon Count      | 275,000+       | Limited            | Manual    |
-| Dependency Size | 0 (CLI only)   | Large              | 0         |
-| Type Safety     | ✅             | ✅                 | ❌        |
-| Customization   | Full           | Limited            | Full      |
-| Fix issue       | Full           | Take time          | Full      |
-| Offline Support | ✅ (committed) | ✅                 | ✅        |
-| Updates         | CLI command    | Crate update       | Manual    |
+| Feature          | dioxus-iconify | Embedded Libraries | SVG Files |
+| ---------------- | -------------- | ------------------ | --------- |
+| Icon Count       | 275,000+       | Limited            | Manual    |
+| Uptodate Icons   | ✅             | Depends            | Manual    |
+| Dependency Size  | 0 (CLI only)   | Large              | 0         |
+| Type Safety      | Mixed          | ✅                 | ❌        |
+| Customization    | Full           | Limited            | Full      |
+| Fixes/workaround | Full           | Take time          | Full      |
+| Offline Support  | ✅ (committed) | ✅                 | ✅        |
+| Updates          | CLI command    | Crate update       | Manual    |
 
 Some Embedded libraries of icons for dioxus:
 [dioxus-free-icons](https://crates.io/crates/dioxus-free-icons),
@@ -255,24 +258,19 @@ Some Embedded libraries of icons for dioxus:
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-## 📝 License
-
-This project is licensed under either of:
-
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
-- MIT License ([LICENSE-MIT](LICENSE-MIT))
-
-at your option.
-
 ## 🙏 Acknowledgments
 
-- [Iconify](https://iconify.design/) - For providing the amazing icon API and collections
-- [shadcn-ui](https://ui.shadcn.com/) - For inspiration on the CLI-based generation approach
-- [iconmate](https://github.com/Blankeos/iconmate) - For similar ideas in the TypeScript ecosystem
 - [Dioxus](https://dioxuslabs.com/) - The amazing Rust UI framework
+- [Iconify](https://iconify.design/) - For providing the amazing icon API and collections
+
+### For inspiration
+
+- [shadcn-ui](https://ui.shadcn.com/) - For inspiration on the CLI-based generation approach
+- [Dioxus Components](https://dioxuslabs.com/components) - Like shadcn but for dioxus
+- [iconmate](https://github.com/Blankeos/iconmate) - For similar ideas in the TypeScript ecosystem
 
 ## 📚 Resources
 
 - [Iconify Documentation](https://iconify.design/docs/)
-- [Dioxus Documentation](https://dioxuslabs.com/learn/0.6/)
+- [Dioxus Documentation](https://dioxuslabs.com/learn/)
 - [Browse Icons](https://icon-sets.iconify.design/)
