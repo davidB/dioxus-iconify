@@ -4,7 +4,7 @@ version = "0.1.1"
 edition = "2024"
 license = "CC0-1.0"
 description = "CLI tool for vendoring [Iconify](https://icon-sets.iconify.design/) icons (material, lucid, heroicons,....) in Dioxus projects"
-repository = "https://github.com/cdviz-dev/dioxus-iconify"
+repository = "https://github.com/davidB/dioxus-iconify"
 keywords = ["dioxus", "iconify", "icons", "cli", "code-generation"]
 categories = ["command-line-utilities", "development-tools"]
 
