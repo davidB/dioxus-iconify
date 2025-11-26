@@ -73,6 +73,9 @@ fn App() -> Element {
             Icon { data: mdi::Home }
             Icon { data: heroicons::ArrowLeft }
             Icon { data: lucide::Settings, width: "32", height: "32" }
+            Icon { data: mdi::Home, size: "24" }
+            Icon { data: heroicons::ArrowLeft, size: 32.to_string() }
+            Icon { data: lucide::Settings, size: "2em" }
         }
     }
 }
