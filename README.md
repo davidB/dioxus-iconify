@@ -25,6 +25,18 @@ Use any of the **275,000+ icons** from [Iconify](https://iconify.design) in your
 
 ```bash
 cargo install dioxus-iconify
+
+# via cargo-binstall
+cargo binstall dioxus-iconify
+
+# brew (mac & linux)
+brew install davidB/tap/dioxus-iconify
+
+# via mise (cli or configuration file)
+mise install "ubi:davidB/dioxus-iconify"
+
+# curl + bash script
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/davidB/dioxus-iconify/releases/download/latest/dioxus-iconify-installer.sh | sh
 ```
 
 ### Usage
