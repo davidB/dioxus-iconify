@@ -1,0 +1,11 @@
+- name: Install Rust toolchain
+  uses: dtolnay/rust-toolchain@stable
+- name: Install Sccache
+  uses: mozilla-actions/sccache-action@v0.0.9
+  env:
+    SCCACHE_GHA_ENABLED: "true"
+    RUSTC_WRAPPER: "sccache"
+- name: Enable sccache
+  run: |
+    echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+    echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"

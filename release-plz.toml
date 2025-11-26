@@ -1,0 +1,7 @@
+[workspace]
+features_always_increment_minor = true
+git_tag_name = "{{version}}"
+git_release_enable = false             # the release is build by the (cargo-)dist from tag
+
+[changelog]
+protect_breaking_commits = true

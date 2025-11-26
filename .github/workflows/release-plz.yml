@@ -1,0 +1,63 @@
+name: release-plz
+
+permissions:
+  pull-requests: write
+  contents: write
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # Release unpublished packages.
+  release-plz-release:
+    name: Release-plz release
+    runs-on: ubuntu-latest
+    steps:
+      # - uses: actions/create-github-app-token@v1
+      #   id: get_token
+      #   with:
+      #     private-key: ${{ secrets.INTBOT_PRIVATE_KEY }}
+      #     app-id: ${{ secrets.INTBOT_APP_ID }}
+      - uses: actions/checkout@v5
+        with:
+          # token: ${{ steps.get_token.outputs.token }}
+          token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
+          fetch-depth: 0
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Run release-plz
+        uses: release-plz/action@v0.5
+        with:
+          command: release
+        env:
+          # use a non default GITHUB_TOKEN to trigger other workflows
+          # GITHUB_TOKEN: ${{ steps.get_token.outputs.token }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  # Create a PR with the new versions and changelog, preparing the next release.
+  release-plz-pr:
+    name: Release-plz PR
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-plz-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.RELEASE_GITHUB_TOKEN }}
+          fetch-depth: 0
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Run release-plz
+        uses: release-plz/action@v0.5
+        with:
+          command: release-pr
+        env:
+          # use the default GITHUB_TOKEN to not trigger other workflows
+          # GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
