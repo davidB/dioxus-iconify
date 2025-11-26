@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0](https://github.com/davidB/dioxus-iconify/compare/0.1.1...0.2.0) - 2025-11-26
+
+### Added
+
+- add the `Icon.size` optional attributes to set width and height to
+- add the `update` command
+- add the `list` command
+
+### Other
+
+- fix the repository url
+- replace blocking by async for reqwest
+- update badges
+- replace dependency to `openssl` by `rustls`
+- update the tagline
+
 ## [0.1.1](https://github.com/davidB/dioxus-iconify/compare/0.1.0...0.1.1) - 2025-11-26
 
 ### Fixed
