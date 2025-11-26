@@ -191,3 +191,94 @@ fn test_generated_icons_are_valid_rust(
 
     Ok(())
 }
+
+#[test]
+fn test_list_icons_integration() -> Result<()> {
+    // Create a temporary directory for icons
+    let temp_dir = TempDir::new()?;
+    let icons_dir = temp_dir.path().join("icons");
+
+    // Generate some test icons
+    let generator = Generator::new(icons_dir.clone());
+
+    use dioxus_iconify::api::IconifyIcon;
+
+    let test_icon = IconifyIcon {
+        body: r#"<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>"#.to_string(),
+        width: Some(24),
+        height: Some(24),
+        view_box: Some("0 0 24 24".to_string()),
+    };
+
+    // Add icons from multiple collections
+    let icons_to_add = vec![
+        (IconIdentifier::parse("mdi:home")?, test_icon.clone()),
+        (IconIdentifier::parse("mdi:settings")?, test_icon.clone()),
+        (
+            IconIdentifier::parse("heroicons:arrow-left")?,
+            test_icon.clone(),
+        ),
+        (IconIdentifier::parse("lucide:user")?, test_icon.clone()),
+    ];
+
+    generator.add_icons(&icons_to_add)?;
+
+    // List the icons
+    let icons_by_collection = generator.list_icons()?;
+
+    // Verify the results
+    assert_eq!(
+        icons_by_collection.len(),
+        3,
+        "Should have 3 collections: mdi, heroicons, lucide"
+    );
+
+    // Check mdi collection
+    let mdi_icons = icons_by_collection
+        .get("mdi")
+        .expect("mdi collection should exist");
+    assert_eq!(mdi_icons.len(), 2, "mdi should have 2 icons");
+    assert!(
+        mdi_icons.contains(&"mdi:home".to_string()),
+        "Should contain mdi:home"
+    );
+    assert!(
+        mdi_icons.contains(&"mdi:settings".to_string()),
+        "Should contain mdi:settings"
+    );
+
+    // Check heroicons collection
+    let heroicons_icons = icons_by_collection
+        .get("heroicons")
+        .expect("heroicons collection should exist");
+    assert_eq!(heroicons_icons.len(), 1, "heroicons should have 1 icon");
+    assert!(
+        heroicons_icons.contains(&"heroicons:arrow-left".to_string()),
+        "Should contain heroicons:arrow-left"
+    );
+
+    // Check lucide collection
+    let lucide_icons = icons_by_collection
+        .get("lucide")
+        .expect("lucide collection should exist");
+    assert_eq!(lucide_icons.len(), 1, "lucide should have 1 icon");
+    assert!(
+        lucide_icons.contains(&"lucide:user".to_string()),
+        "Should contain lucide:user"
+    );
+
+    // Verify the icon names are in the correct format (collection:icon-name)
+    for (collection, icons) in &icons_by_collection {
+        for icon in icons {
+            assert!(
+                icon.starts_with(&format!("{}:", collection)),
+                "Icon {} should start with collection prefix {}:",
+                icon,
+                collection
+            );
+        }
+    }
+
+    println!("✓ List icons integration test passed");
+    Ok(())
+}

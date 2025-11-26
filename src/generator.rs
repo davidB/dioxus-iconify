@@ -97,6 +97,51 @@ impl Generator {
         Self { icons_dir }
     }
 
+    /// List all generated icons grouped by collection
+    pub fn list_icons(&self) -> Result<BTreeMap<String, Vec<String>>> {
+        let mut icons_by_collection: BTreeMap<String, Vec<String>> = BTreeMap::new();
+
+        // Check if icons directory exists
+        if !self.icons_dir.exists() {
+            return Ok(icons_by_collection);
+        }
+
+        // Read all .rs files in the icons directory (except mod.rs)
+        let entries = fs::read_dir(&self.icons_dir).context("Failed to read icons directory")?;
+
+        for entry in entries {
+            let entry = entry.context("Failed to read directory entry")?;
+            let path = entry.path();
+
+            // Skip if not a file or if it's mod.rs
+            if !path.is_file() || path.file_name() == Some("mod.rs".as_ref()) {
+                continue;
+            }
+
+            // Skip if not a .rs file
+            if path.extension() != Some("rs".as_ref()) {
+                continue;
+            }
+
+            // Parse the collection file
+            let icons = self.parse_collection_file(&path)?;
+
+            // Get collection name from file name
+            if let Some(collection_name) = path.file_stem().and_then(|s| s.to_str()) {
+                let icon_names: Vec<String> = icons
+                    .values()
+                    .map(|icon| icon.full_icon_name.clone())
+                    .collect();
+
+                if !icon_names.is_empty() {
+                    icons_by_collection.insert(collection_name.to_string(), icon_names);
+                }
+            }
+        }
+
+        Ok(icons_by_collection)
+    }
+
     /// Initialize the icons directory with mod.rs if it doesn't exist
     pub fn init(&self) -> Result<()> {
         // Create icons directory if it doesn't exist
@@ -378,5 +423,82 @@ fn extract_raw_string_value(lines: &[&str], index: &mut usize) -> String {
         result
     } else {
         String::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::api::IconifyIcon;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_list_icons_empty_directory() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let generator = Generator::new(temp_dir.path().join("icons"));
+
+        let icons = generator.list_icons()?;
+        assert!(
+            icons.is_empty(),
+            "Should return empty map for non-existent directory"
+        );
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_list_icons_with_generated_icons() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let icons_dir = temp_dir.path().join("icons");
+        let generator = Generator::new(icons_dir.clone());
+
+        // Add some test icons
+        let test_icon1 = IconifyIcon {
+            body: r#"<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>"#.to_string(),
+            width: Some(24),
+            height: Some(24),
+            view_box: Some("0 0 24 24".to_string()),
+        };
+
+        let test_icon2 = IconifyIcon {
+            body: r#"<circle cx="12" cy="12" r="10"/>"#.to_string(),
+            width: Some(24),
+            height: Some(24),
+            view_box: Some("0 0 24 24".to_string()),
+        };
+
+        let identifier1 = IconIdentifier::parse("mdi:home")?;
+        let identifier2 = IconIdentifier::parse("mdi:settings")?;
+        let identifier3 = IconIdentifier::parse("heroicons:arrow-left")?;
+
+        generator.add_icons(&[
+            (identifier1, test_icon1.clone()),
+            (identifier2, test_icon2.clone()),
+            (identifier3, test_icon1.clone()),
+        ])?;
+
+        // List the icons
+        let icons = generator.list_icons()?;
+
+        // Should have 2 collections
+        assert_eq!(icons.len(), 2, "Should have 2 collections");
+        assert!(icons.contains_key("mdi"), "Should have mdi collection");
+        assert!(
+            icons.contains_key("heroicons"),
+            "Should have heroicons collection"
+        );
+
+        // Check mdi collection has 2 icons
+        let mdi_icons = icons.get("mdi").unwrap();
+        assert_eq!(mdi_icons.len(), 2, "mdi should have 2 icons");
+        assert!(mdi_icons.contains(&"mdi:home".to_string()));
+        assert!(mdi_icons.contains(&"mdi:settings".to_string()));
+
+        // Check heroicons collection has 1 icon
+        let heroicons_icons = icons.get("heroicons").unwrap();
+        assert_eq!(heroicons_icons.len(), 1, "heroicons should have 1 icon");
+        assert!(heroicons_icons.contains(&"heroicons:arrow-left".to_string()));
+
+        Ok(())
     }
 }

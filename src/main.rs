@@ -32,16 +32,16 @@ enum Commands {
     /// Initialize the icons directory (creates mod.rs)
     #[command(visible_alias = "i")]
     Init,
+
+    /// List all generated icons
+    #[command(visible_alias = "l")]
+    List,
     // Future commands (not yet implemented)
     // /// Remove icons from your project
     // #[command(visible_alias = "r")]
     // Remove {
     //     icons: Vec<String>,
     // },
-    //
-    // /// List all generated icons
-    // #[command(visible_alias = "l")]
-    // List,
     //
     // /// Update all icons by re-fetching from API
     // #[command(visible_alias = "u")]
@@ -65,6 +65,9 @@ fn run() -> Result<()> {
         }
         Commands::Init => {
             init_icons_dir(&generator)?;
+        }
+        Commands::List => {
+            list_icons(&generator)?;
         }
     }
 
@@ -125,5 +128,38 @@ fn init_icons_dir(generator: &Generator) -> Result<()> {
     println!("✨ Created icons directory with mod.rs");
     println!("\n💡 Next: Run `dioxus-iconify add <icon>` to add icons");
     println!("   Example: dioxus-iconify add mdi:home");
+    Ok(())
+}
+
+fn list_icons(generator: &Generator) -> Result<()> {
+    let icons_by_collection = generator.list_icons()?;
+
+    if icons_by_collection.is_empty() {
+        println!("No icons found.");
+        println!("\n💡 Add icons with: dioxus-iconify add <icon>");
+        println!("   Example: dioxus-iconify add mdi:home");
+        return Ok(());
+    }
+
+    let total_icons: usize = icons_by_collection.values().map(|v| v.len()).sum();
+    println!(
+        "📦 Found {} icon(s) across {} collection(s):\n",
+        total_icons,
+        icons_by_collection.len()
+    );
+
+    for (collection, icons) in &icons_by_collection {
+        println!(
+            "{}/ ({} icon{})",
+            collection,
+            icons.len(),
+            if icons.len() == 1 { "" } else { "s" }
+        );
+        for icon in icons {
+            println!("  {}", icon);
+        }
+        println!();
+    }
+
     Ok(())
 }
