@@ -83,11 +83,15 @@ async fn add_icons(generator: &Generator, icon_ids: &[String]) -> Result<()> {
 
     let client = IconifyClient::new()?;
     let mut icons_to_add = Vec::new();
+    let mut collections = std::collections::HashSet::new();
 
     for icon_id in icon_ids {
         // Parse icon identifier
         let identifier = IconIdentifier::parse(icon_id)
             .context(format!("Invalid icon identifier: {}", icon_id))?;
+
+        // Track collections
+        collections.insert(identifier.collection.clone());
 
         // Fetch icon from API
         print!("  Fetching {}... ", icon_id);
@@ -101,9 +105,26 @@ async fn add_icons(generator: &Generator, icon_ids: &[String]) -> Result<()> {
         icons_to_add.push((identifier, icon));
     }
 
+    // Fetch collection info for all unique collections
+    println!("\n📚 Fetching collection metadata...");
+    let mut collection_info = std::collections::HashMap::new();
+    for collection in collections {
+        print!("  Fetching info for {}... ", collection);
+        match client.fetch_collection_info(&collection).await {
+            Ok(info) => {
+                println!("✓");
+                collection_info.insert(collection, info);
+            }
+            Err(e) => {
+                println!("⚠ (skipped: {})", e);
+                // Continue without collection info - it's optional
+            }
+        }
+    }
+
     // Generate code
     println!("\n📝 Generating Rust code...");
-    generator.add_icons(&icons_to_add)?;
+    generator.add_icons(&icons_to_add, &collection_info)?;
 
     println!(
         "\n✨ Done! Added {} icon(s) to your project.",
@@ -188,6 +209,7 @@ async fn update_icons(generator: &Generator) -> Result<()> {
     let client = IconifyClient::new()?;
     let mut icons_to_update = Vec::new();
     let mut failed_icons = Vec::new();
+    let mut collections = std::collections::HashSet::new();
 
     for icon_id in &icon_ids {
         // Parse icon identifier
@@ -199,6 +221,9 @@ async fn update_icons(generator: &Generator) -> Result<()> {
                 continue;
             }
         };
+
+        // Track collections
+        collections.insert(identifier.collection.clone());
 
         // Fetch icon from API
         print!("  Fetching {}... ", icon_id);
@@ -223,9 +248,26 @@ async fn update_icons(generator: &Generator) -> Result<()> {
         return Ok(());
     }
 
+    // Fetch collection info for all unique collections
+    println!("\n📚 Fetching collection metadata...");
+    let mut collection_info = std::collections::HashMap::new();
+    for collection in collections {
+        print!("  Fetching info for {}... ", collection);
+        match client.fetch_collection_info(&collection).await {
+            Ok(info) => {
+                println!("✓");
+                collection_info.insert(collection, info);
+            }
+            Err(e) => {
+                println!("⚠ (skipped: {})", e);
+                // Continue without collection info - it's optional
+            }
+        }
+    }
+
     // Regenerate code
     println!("\n📝 Regenerating Rust code...");
-    generator.add_icons(&icons_to_update)?;
+    generator.add_icons(&icons_to_update, &collection_info)?;
 
     // Force regenerate mod.rs to ensure Icon component is up to date
     generator.regenerate_mod_rs()?;

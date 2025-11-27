@@ -3,6 +3,7 @@ use dioxus_iconify::api::IconifyClient;
 use dioxus_iconify::generator::Generator;
 use dioxus_iconify::naming::IconIdentifier;
 use rstest::rstest;
+use std::collections::HashMap;
 use std::fs;
 use std::process::Command;
 use tempfile::TempDir;
@@ -32,7 +33,7 @@ async fn test_generated_code_compiles_without_warnings() -> Result<()> {
         icons_to_add.push((identifier, icon));
     }
 
-    generator.add_icons(&icons_to_add)?;
+    generator.add_icons(&icons_to_add, &HashMap::new())?;
 
     // Create a minimal Cargo.toml for the test project
     let cargo_toml = r#"[package]
@@ -150,7 +151,7 @@ fn test_generated_icons_are_valid_rust(
 
     let identifier = IconIdentifier::parse(icon_id)?;
     let collection = identifier.collection.clone().replace('-', "_");
-    generator.add_icons(&[(identifier, test_icon)])?;
+    generator.add_icons(&[(identifier, test_icon)], &HashMap::new())?;
 
     // Read the generated file and verify it contains valid Rust syntax markers
     let generated_file = icons_dir.join(format!("{}.rs", collection));
@@ -226,7 +227,7 @@ fn test_list_icons_integration() -> Result<()> {
         (IconIdentifier::parse("lucide:user")?, test_icon.clone()),
     ];
 
-    generator.add_icons(&icons_to_add)?;
+    generator.add_icons(&icons_to_add, &HashMap::new())?;
 
     // List the icons
     let icons_by_collection = generator.list_icons()?;

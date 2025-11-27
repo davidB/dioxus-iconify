@@ -16,6 +16,54 @@ pub struct IconifyIcon {
     pub view_box: Option<String>,
 }
 
+/// Collection information from Iconify API
+/// Based on IconifyInfo: https://iconify.design/docs/types/iconify-info.html
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IconifyCollectionInfo {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub author: Option<IconifyAuthor>,
+    #[serde(default)]
+    pub license: Option<IconifyLicense>,
+    #[serde(default)]
+    pub height: Option<u32>,
+    #[serde(default)]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub palette: Option<bool>,
+    #[serde(default)]
+    pub total: Option<u32>,
+}
+
+/// Author information in collection metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum IconifyAuthor {
+    Simple(String),
+    Detailed {
+        #[serde(default)]
+        name: Option<String>,
+        #[serde(default)]
+        url: Option<String>,
+    },
+}
+
+/// License information in collection metadata
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum IconifyLicense {
+    Simple(String),
+    Detailed {
+        #[serde(default)]
+        title: Option<String>,
+        #[serde(default)]
+        spdx: Option<String>,
+        #[serde(default)]
+        url: Option<String>,
+    },
+}
+
 /// API response structure for icon data
 #[derive(Debug, Deserialize)]
 struct IconifyApiResponse {
@@ -45,6 +93,36 @@ impl IconifyClient {
             client,
             base_url: API_BASE_URL.to_string(),
         })
+    }
+
+    /// Fetch collection information from the Iconify API
+    pub async fn fetch_collection_info(&self, collection: &str) -> Result<IconifyCollectionInfo> {
+        let url = format!(
+            "{}/collection?prefix={}&info=true",
+            self.base_url, collection
+        );
+
+        let response = self.client.get(&url).send().await.context(format!(
+            "Failed to fetch collection info for '{}'",
+            collection
+        ))?;
+
+        if !response.status().is_success() {
+            let status = response.status();
+            let text = response.text().await.unwrap_or_default();
+            return Err(anyhow!(
+                "API request failed with status {}: {}",
+                status,
+                text
+            ));
+        }
+
+        let collection_info: IconifyCollectionInfo = response
+            .json()
+            .await
+            .context("Failed to parse collection info response")?;
+
+        Ok(collection_info)
     }
 
     /// Fetch a single icon from the Iconify API
@@ -195,5 +273,19 @@ mod tests {
             .await;
 
         assert!(result.is_err());
+    }
+
+    #[rstest]
+    #[case("mdi")]
+    #[case("heroicons")]
+    #[case("lucide")]
+    #[ignore] // Requires internet connection
+    #[tokio::test]
+    async fn test_fetch_collection_info(#[case] collection: &str) {
+        let client = IconifyClient::new().unwrap();
+        let info = client.fetch_collection_info(collection).await.unwrap();
+
+        // At minimum, we should get a name
+        assert!(info.name.is_some(), "Collection should have a name");
     }
 }
