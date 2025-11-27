@@ -1,6 +1,6 @@
 use anyhow::{Context, Result};
 use indoc::{formatdoc, indoc};
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -225,18 +225,8 @@ impl Generator {
         // Read existing mod.rs to extract module declarations
         let content = fs::read_to_string(&mod_rs_path).context("Failed to read mod.rs")?;
 
-        // Extract existing module declarations
-        let mut existing_modules: HashSet<String> = HashSet::new();
-        for line in content.lines() {
-            if line.trim().starts_with("pub mod ")
-                && let Some(module_name) = line
-                    .trim()
-                    .strip_prefix("pub mod ")
-                    .and_then(|s| s.strip_suffix(';'))
-            {
-                existing_modules.insert(module_name.trim().to_string());
-            }
-        }
+        // Extract existing module declarations with their visibility
+        let existing_modules = extract_module_declarations(&content);
 
         // Regenerate mod.rs with latest template
         let mut new_content = MOD_RS_TEMPLATE.to_string();
@@ -244,10 +234,10 @@ impl Generator {
 
         // Add module declarations in alphabetical order
         let mut sorted_modules: Vec<_> = existing_modules.iter().collect();
-        sorted_modules.sort();
+        sorted_modules.sort_by_key(|(name, _)| *name);
 
-        for module in sorted_modules {
-            new_content.push_str(&format!("pub mod {};\n", module));
+        for (module, visibility) in sorted_modules {
+            new_content.push_str(&format!("{}mod {};\n", visibility, module));
         }
 
         fs::write(&mod_rs_path, new_content).context("Failed to update mod.rs")?;
@@ -426,25 +416,17 @@ impl Generator {
         // Read existing mod.rs
         let content = fs::read_to_string(&mod_rs_path).context("Failed to read mod.rs")?;
 
-        // Extract existing module declarations
-        let mut existing_modules: HashSet<String> = HashSet::new();
-        for line in content.lines() {
-            if line.trim().starts_with("pub mod ")
-                && let Some(module_name) = line
-                    .trim()
-                    .strip_prefix("pub mod ")
-                    .and_then(|s| s.strip_suffix(';'))
-            {
-                existing_modules.insert(module_name.trim().to_string());
-            }
-        }
+        // Extract existing module declarations with their visibility
+        let mut existing_modules = extract_module_declarations(&content);
 
-        // Add new modules
+        // Add new modules (with pub visibility by default)
         let mut needs_update = false;
         for collection in collections {
             let module_name = collection.replace('-', "_");
-            if !existing_modules.contains(&module_name) {
-                existing_modules.insert(module_name);
+            if let std::collections::hash_map::Entry::Vacant(e) =
+                existing_modules.entry(module_name)
+            {
+                e.insert("pub ".to_string());
                 needs_update = true;
             }
         }
@@ -456,10 +438,10 @@ impl Generator {
 
             // Add module declarations in alphabetical order
             let mut sorted_modules: Vec<_> = existing_modules.iter().collect();
-            sorted_modules.sort();
+            sorted_modules.sort_by_key(|(name, _)| *name);
 
-            for module in sorted_modules {
-                new_content.push_str(&format!("pub mod {};\n", module));
+            for (module, visibility) in sorted_modules {
+                new_content.push_str(&format!("{}mod {};\n", visibility, module));
             }
 
             fs::write(&mod_rs_path, new_content).context("Failed to update mod.rs")?;
@@ -467,6 +449,53 @@ impl Generator {
 
         Ok(())
     }
+}
+
+/// Extract module declarations from mod.rs content, preserving their visibility modifiers
+/// Returns a HashMap where keys are module names and values are visibility prefixes
+/// (e.g., "pub ", "pub(crate) ", "" for private modules)
+fn extract_module_declarations(content: &str) -> HashMap<String, String> {
+    let mut modules = HashMap::new();
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+
+        // Skip lines that don't end with semicolon
+        if !trimmed.ends_with(';') {
+            continue;
+        }
+
+        // Remove the trailing semicolon
+        let without_semi = &trimmed[..trimmed.len() - 1];
+
+        // Look for "mod " pattern
+        if let Some(mod_idx) = without_semi.find("mod ") {
+            // Everything before "mod " is the visibility (if any)
+            let visibility = if mod_idx == 0 {
+                // Line starts with "mod " - no visibility modifier
+                String::new()
+            } else {
+                // There's something before "mod " - that's the visibility
+                // The space before "mod" is already there, so just take everything before mod_idx
+                let vis = without_semi[..mod_idx].trim();
+                if vis.is_empty() {
+                    String::new()
+                } else {
+                    vis.to_string() + " "
+                }
+            };
+
+            // Everything after "mod " is the module name
+            let module_name = without_semi[mod_idx + 4..].trim();
+
+            // Only add if we have a valid module name
+            if !module_name.is_empty() {
+                modules.insert(module_name.to_string(), visibility);
+            }
+        }
+    }
+
+    modules
 }
 
 /// Format collection info as a YAML comment block
@@ -901,6 +930,262 @@ pub mod mdi;
         );
         assert!(content.contains("palette: false"), "Should include palette");
         assert!(content.contains("height: 24"), "Should include height");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_module_visibility_preservation() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let icons_dir = temp_dir.path().join("icons");
+        let generator = Generator::new(icons_dir.clone());
+
+        // Add initial icons
+        let test_icon = IconifyIcon {
+            body: r#"<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>"#.to_string(),
+            width: Some(24),
+            height: Some(24),
+            view_box: Some("0 0 24 24".to_string()),
+        };
+
+        let identifier1 = IconIdentifier::parse("mdi:home")?;
+        let identifier2 = IconIdentifier::parse("heroicons:arrow-left")?;
+
+        generator.add_icons(
+            &[
+                (identifier1, test_icon.clone()),
+                (identifier2, test_icon.clone()),
+            ],
+            &HashMap::new(),
+        )?;
+
+        let mod_rs_path = icons_dir.join("mod.rs");
+
+        // Modify mod.rs to have different visibility modifiers
+        let modified_content = r#"// Auto-generated by dioxus-iconify - DO NOT EDIT
+use dioxus::prelude::*;
+
+#[derive(Clone, Copy, PartialEq)]
+pub struct IconData {
+    pub name: &'static str,
+    pub body: &'static str,
+    pub view_box: &'static str,
+    pub width: &'static str,
+    pub height: &'static str,
+}
+
+#[component]
+pub fn Icon(
+    data: IconData,
+    /// Optional size to set both width and height
+    #[props(default, into)]
+    size: String,
+    /// Additional attributes to extend the svg element
+    #[props(extends = GlobalAttributes)]
+    attributes: Vec<Attribute>,
+) -> Element {
+    let (width, height) = if size.is_empty() {
+        (data.width, data.height)
+    } else {
+        (size.as_str(), size.as_str())
+    };
+
+    rsx! {
+        svg {
+            view_box: "{data.view_box}",
+            width: "{width}",
+            height: "{height}",
+            dangerous_inner_html: "{data.body}",
+            ..attributes,
+        }
+    }
+}
+
+mod heroicons;
+pub mod mdi;
+"#;
+        fs::write(&mod_rs_path, modified_content)?;
+
+        // Add another icon from a new collection
+        let identifier3 = IconIdentifier::parse("lucide:star")?;
+        generator.add_icons(&[(identifier3, test_icon.clone())], &HashMap::new())?;
+
+        // Read the updated mod.rs
+        let content_after = fs::read_to_string(&mod_rs_path)?;
+
+        // Verify that visibility is preserved
+        assert!(
+            content_after.contains("mod heroicons;"),
+            "Should preserve 'mod heroicons;' without pub"
+        );
+        assert!(
+            content_after.contains("pub mod mdi;"),
+            "Should preserve 'pub mod mdi;'"
+        );
+        assert!(
+            content_after.contains("pub mod lucide;"),
+            "New modules should be added with 'pub mod'"
+        );
+
+        // Verify that all three modules are present
+        let has_heroicons = content_after.lines().any(|l| l.trim() == "mod heroicons;");
+        let has_mdi = content_after.lines().any(|l| l.trim() == "pub mod mdi;");
+        let has_lucide = content_after.lines().any(|l| l.trim() == "pub mod lucide;");
+
+        assert!(has_heroicons, "Should have mod heroicons;");
+        assert!(has_mdi, "Should have pub mod mdi;");
+        assert!(has_lucide, "Should have pub mod lucide;");
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_extract_module_declarations() {
+        let content = r#"
+// Some comment
+pub mod mdi;
+mod heroicons;
+pub(crate) mod feather;
+pub mod simple_icons;
+"#;
+
+        let modules = extract_module_declarations(content);
+
+        assert_eq!(modules.len(), 4);
+        assert_eq!(modules.get("mdi"), Some(&"pub ".to_string()));
+        assert_eq!(modules.get("heroicons"), Some(&"".to_string()));
+        assert_eq!(modules.get("feather"), Some(&"pub(crate) ".to_string()));
+        assert_eq!(modules.get("simple_icons"), Some(&"pub ".to_string()));
+    }
+
+    #[test]
+    fn test_custom_user_module_preservation() -> Result<()> {
+        let temp_dir = TempDir::new()?;
+        let icons_dir = temp_dir.path().join("icons");
+        let generator = Generator::new(icons_dir.clone());
+
+        // Create custom user module with custom IconData
+        fs::create_dir_all(&icons_dir)?;
+        let app_rs_path = icons_dir.join("app.rs");
+        let custom_icon_content = r##"/// Custom user-defined icons
+use super::IconData;
+
+#[allow(non_upper_case_globals)]
+pub const CustomLogo: IconData = IconData {
+    name: "app:custom-logo",
+    body: r#"<rect width="100" height="100" fill="blue"/>"#,
+    view_box: "0 0 100 100",
+    width: "100",
+    height: "100",
+};
+
+#[allow(non_upper_case_globals)]
+pub const CustomBrand: IconData = IconData {
+    name: "app:custom-brand",
+    body: r#"<circle cx="50" cy="50" r="40" fill="red"/>"#,
+    view_box: "0 0 100 100",
+    width: "100",
+    height: "100",
+};
+"##;
+        fs::write(&app_rs_path, custom_icon_content)?;
+
+        // Initialize with mod.rs and add the custom module with pub(crate) visibility
+        generator.init()?;
+        let mod_rs_path = icons_dir.join("mod.rs");
+        let initial_mod_content = format!(
+            "{}
+pub(crate) mod app;
+",
+            MOD_RS_TEMPLATE
+        );
+        fs::write(&mod_rs_path, initial_mod_content)?;
+
+        // Verify custom module file exists
+        assert!(app_rs_path.exists(), "Custom app.rs should exist");
+        let custom_content_before = fs::read_to_string(&app_rs_path)?;
+        assert!(
+            custom_content_before.contains("CustomLogo"),
+            "Custom icon should be defined"
+        );
+
+        // Now add some generated icons
+        let test_icon = IconifyIcon {
+            body: r#"<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>"#.to_string(),
+            width: Some(24),
+            height: Some(24),
+            view_box: Some("0 0 24 24".to_string()),
+        };
+
+        let identifier1 = IconIdentifier::parse("mdi:home")?;
+        let identifier2 = IconIdentifier::parse("heroicons:star")?;
+
+        generator.add_icons(
+            &[
+                (identifier1, test_icon.clone()),
+                (identifier2, test_icon.clone()),
+            ],
+            &HashMap::new(),
+        )?;
+
+        // Verify custom module file still exists and is unchanged
+        assert!(
+            app_rs_path.exists(),
+            "Custom app.rs should still exist after adding generated icons"
+        );
+        let custom_content_after = fs::read_to_string(&app_rs_path)?;
+        assert_eq!(
+            custom_content_before, custom_content_after,
+            "Custom module content should not be modified"
+        );
+
+        // Read updated mod.rs
+        let mod_rs_content = fs::read_to_string(&mod_rs_path)?;
+
+        // Verify that custom module is still present with original visibility
+        assert!(
+            mod_rs_content.contains("pub(crate) mod app;"),
+            "Custom module should be preserved with pub(crate) visibility"
+        );
+
+        // Verify that generated modules were added
+        assert!(
+            mod_rs_content.contains("pub mod mdi;"),
+            "Generated mdi module should be added"
+        );
+        assert!(
+            mod_rs_content.contains("pub mod heroicons;"),
+            "Generated heroicons module should be added"
+        );
+
+        // Count module declarations to ensure nothing was removed
+        let module_count = mod_rs_content
+            .lines()
+            .filter(|line| line.trim().contains("mod ") && line.trim().ends_with(';'))
+            .count();
+        assert_eq!(
+            module_count, 3,
+            "Should have exactly 3 modules: app, heroicons, and mdi"
+        );
+
+        // Verify modules are in alphabetical order
+        let mod_lines: Vec<&str> = mod_rs_content
+            .lines()
+            .filter(|line| line.trim().contains("mod ") && line.trim().ends_with(';'))
+            .collect();
+        assert_eq!(mod_lines.len(), 3, "Should have 3 module lines");
+
+        // Check that they appear in alphabetical order
+        let mut module_names: Vec<String> = Vec::new();
+        for line in &mod_lines {
+            if let Some(name_start) = line.find("mod ") {
+                let name_part = &line[name_start + 4..];
+                if let Some(name_end) = name_part.find(';') {
+                    module_names.push(name_part[..name_end].trim().to_string());
+                }
+            }
+        }
+        assert_eq!(module_names, vec!["app", "heroicons", "mdi"]);
 
         Ok(())
     }
