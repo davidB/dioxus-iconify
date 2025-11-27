@@ -1,10 +1,12 @@
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 
 use dioxus_iconify::api::IconifyClient;
 use dioxus_iconify::generator::Generator;
 use dioxus_iconify::naming::IconIdentifier;
+use dioxus_iconify::svg;
 
 #[derive(Parser)]
 #[command(name = "dioxus-iconify")]
@@ -24,9 +26,13 @@ enum Commands {
     /// Add one or more icons to your project
     #[command(visible_alias = "a")]
     Add {
-        /// Icon identifiers in the format collection:icon-name (e.g., mdi:home, heroicons:arrow-left)
+        /// Icon identifiers, SVG file paths, or directory paths (e.g., mdi:home, ./logo.svg, ./icons/)
         #[arg(required = true)]
         icons: Vec<String>,
+
+        /// Skip icons that already exist (don't overwrite)
+        #[arg(long)]
+        skip_existing: bool,
     },
 
     /// Initialize the icons directory (creates mod.rs)
@@ -61,8 +67,11 @@ async fn run() -> Result<()> {
     let generator = Generator::new(cli.output.clone());
 
     match cli.command {
-        Commands::Add { icons } => {
-            add_icons(&generator, &icons).await?;
+        Commands::Add {
+            icons,
+            skip_existing,
+        } => {
+            add_icons(&generator, &icons, skip_existing).await?;
         }
         Commands::Init => {
             init_icons_dir(&generator)?;
@@ -78,46 +87,180 @@ async fn run() -> Result<()> {
     Ok(())
 }
 
-async fn add_icons(generator: &Generator, icon_ids: &[String]) -> Result<()> {
-    println!("📦 Fetching {} icon(s) from Iconify API...", icon_ids.len());
+async fn add_icons(generator: &Generator, inputs: &[String], skip_existing: bool) -> Result<()> {
+    // Classify inputs into three categories
+    let mut api_identifiers = Vec::new();
+    let mut svg_files = Vec::new();
+    let mut svg_directories = Vec::new();
+
+    for input in inputs {
+        let path = Path::new(input);
+
+        if path.exists() {
+            if path.is_dir() {
+                svg_directories.push(path.to_path_buf());
+            } else if path.extension().and_then(|s| s.to_str()) == Some("svg") {
+                svg_files.push(path.to_path_buf());
+            } else {
+                return Err(anyhow!(
+                    "Path exists but is not SVG file or directory: {}",
+                    input
+                ));
+            }
+        } else {
+            // Not a filesystem path, treat as API identifier
+            api_identifiers.push(input.clone());
+        }
+    }
 
     let client = IconifyClient::new()?;
     let mut icons_to_add = Vec::new();
-    let mut collections = std::collections::HashSet::new();
+    let mut collections = HashSet::new();
+    let mut api_collections = HashSet::new(); // Track which collections came from API
 
-    for icon_id in icon_ids {
-        // Parse icon identifier
-        let identifier = IconIdentifier::parse(icon_id)
-            .context(format!("Invalid icon identifier: {}", icon_id))?;
+    // Process API icons (existing logic)
+    if !api_identifiers.is_empty() {
+        println!(
+            "📦 Fetching {} icon(s) from Iconify API...",
+            api_identifiers.len()
+        );
 
-        // Track collections
-        collections.insert(identifier.collection.clone());
+        for icon_id in &api_identifiers {
+            // Parse icon identifier
+            let identifier = IconIdentifier::parse(icon_id)
+                .context(format!("Invalid icon identifier: {}", icon_id))?;
 
-        // Fetch icon from API
-        print!("  Fetching {}... ", icon_id);
-        let icon = client
-            .fetch_icon(&identifier.collection, &identifier.icon_name)
-            .await
-            .context(format!("Failed to fetch icon: {}", icon_id))?;
+            // Track collections
+            collections.insert(identifier.collection.clone());
+            api_collections.insert(identifier.collection.clone());
 
-        println!("✓");
+            // Fetch icon from API
+            print!("  Fetching {}... ", icon_id);
+            let icon = client
+                .fetch_icon(&identifier.collection, &identifier.icon_name)
+                .await
+                .context(format!("Failed to fetch icon: {}", icon_id))?;
 
-        icons_to_add.push((identifier, icon));
+            println!("✓");
+
+            icons_to_add.push((identifier, icon));
+        }
     }
 
-    // Fetch collection info for all unique collections
-    println!("\n📚 Fetching collection metadata...");
-    let mut collection_info = std::collections::HashMap::new();
-    for collection in collections {
-        print!("  Fetching info for {}... ", collection);
-        match client.fetch_collection_info(&collection).await {
-            Ok(info) => {
-                println!("✓");
-                collection_info.insert(collection, info);
+    // Process local SVG files (NEW)
+    if !svg_files.is_empty() {
+        println!("\n📁 Processing {} local SVG file(s)...", svg_files.len());
+        for svg_path in &svg_files {
+            match process_single_svg(svg_path) {
+                Ok((identifier, icon)) => {
+                    println!("  {} ✓", identifier.full_name);
+                    collections.insert(identifier.collection.clone());
+                    icons_to_add.push((identifier, icon));
+                }
+                Err(e) => {
+                    eprintln!("  ⚠ Skipping {}: {}", svg_path.display(), e);
+                }
             }
-            Err(e) => {
-                println!("⚠ (skipped: {})", e);
-                // Continue without collection info - it's optional
+        }
+    }
+
+    // Process SVG directories (NEW)
+    if !svg_directories.is_empty() {
+        println!(
+            "\n📂 Scanning {} director(ies) for SVGs...",
+            svg_directories.len()
+        );
+        for dir_path in &svg_directories {
+            let collection = match svg::extract_collection_name(dir_path) {
+                Ok(c) => c,
+                Err(e) => {
+                    eprintln!("  ⚠ Skipping {}: {}", dir_path.display(), e);
+                    continue;
+                }
+            };
+
+            let svg_files = match svg::scan_svg_directory(dir_path) {
+                Ok(files) => files,
+                Err(e) => {
+                    eprintln!("  ⚠ Error scanning {}: {}", dir_path.display(), e);
+                    continue;
+                }
+            };
+
+            if !svg_files.is_empty() {
+                println!(
+                    "  Found {} SVG(s) in {}",
+                    svg_files.len(),
+                    dir_path.display()
+                );
+            }
+
+            for (svg_path, icon_name) in svg_files {
+                let full_name = format!("{}:{}", collection, icon_name);
+
+                match IconIdentifier::parse(&full_name) {
+                    Ok(identifier) => match svg::parse_svg_file(&svg_path) {
+                        Ok(icon) => {
+                            collections.insert(collection.clone());
+                            icons_to_add.push((identifier, icon));
+                        }
+                        Err(e) => {
+                            eprintln!("  ⚠ Skipping {}: {}", svg_path.display(), e);
+                        }
+                    },
+                    Err(e) => {
+                        eprintln!("  ⚠ Invalid icon name {}: {}", full_name, e);
+                    }
+                }
+            }
+        }
+    }
+
+    if icons_to_add.is_empty() {
+        println!("\n⚠ No icons to add");
+        return Ok(());
+    }
+
+    // Handle skip-existing flag
+    if skip_existing {
+        let existing = generator.get_all_icon_identifiers()?;
+        let existing_set: HashSet<_> = existing.iter().collect();
+
+        let original_count = icons_to_add.len();
+        icons_to_add.retain(|(id, _)| {
+            let keep = !existing_set.contains(&id.full_name);
+            if !keep {
+                println!("  Skipping existing icon: {}", id.full_name);
+            }
+            keep
+        });
+
+        let skipped_count = original_count - icons_to_add.len();
+        if skipped_count > 0 {
+            println!("\n⏭ Skipped {} existing icon(s)", skipped_count);
+        }
+
+        if icons_to_add.is_empty() {
+            println!("\n⚠ All icons already exist, nothing to add");
+            return Ok(());
+        }
+    }
+
+    // Fetch collection info only for API collections (not local SVGs)
+    let mut collection_info = std::collections::HashMap::new();
+    if !api_collections.is_empty() {
+        println!("\n📚 Fetching collection metadata...");
+        for collection in &api_collections {
+            print!("  Fetching info for {}... ", collection);
+            match client.fetch_collection_info(collection).await {
+                Ok(info) => {
+                    println!("✓");
+                    collection_info.insert(collection.clone(), info);
+                }
+                Err(e) => {
+                    println!("⚠ (skipped: {})", e);
+                    // Continue without collection info - it's optional
+                }
             }
         }
     }
@@ -128,7 +271,7 @@ async fn add_icons(generator: &Generator, icon_ids: &[String]) -> Result<()> {
 
     println!(
         "\n✨ Done! Added {} icon(s) to your project.",
-        icon_ids.len()
+        icons_to_add.len()
     );
     println!("\n💡 Usage:");
     println!("   use icons::Icon;");
@@ -146,6 +289,29 @@ async fn add_icons(generator: &Generator, icon_ids: &[String]) -> Result<()> {
     );
 
     Ok(())
+}
+
+/// Helper function to process a single SVG file
+fn process_single_svg(
+    svg_path: &Path,
+) -> Result<(IconIdentifier, dioxus_iconify::api::IconifyIcon)> {
+    let collection = svg::extract_collection_name(
+        svg_path
+            .parent()
+            .ok_or_else(|| anyhow!("No parent directory for: {}", svg_path.display()))?,
+    )?;
+
+    let icon_name = svg_path
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| anyhow!("Invalid filename: {}", svg_path.display()))?
+        .to_string();
+
+    let full_name = format!("{}:{}", collection, icon_name);
+    let identifier = IconIdentifier::parse(&full_name)?;
+    let icon = svg::parse_svg_file(svg_path)?;
+
+    Ok((identifier, icon))
 }
 
 fn init_icons_dir(generator: &Generator) -> Result<()> {

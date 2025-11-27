@@ -12,6 +12,7 @@ Use any of the **275,000+ icons** from [Iconify](https://iconify.design) in your
 ## ✨ Features
 
 - 🎨 **275k+ Icons**: Access icons from Material Design, Heroicons, FontAwesome, Lucide, and [200+ other icon sets](https://icon-sets.iconify.design/)
+- 📁 **Local SVG Support**: Import your own SVG files or entire directories
 - 🦀 **Type-Safe**: Generated as Rust const values, checked at compile time
 - 📦 **Zero Runtime Dependencies**: No need to depend on this crate at compile time and runtime - only Dioxus
 - 🗂️ **Well Organized**: Icons grouped by collection in separate files
@@ -46,11 +47,23 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/davidB/dioxus-iconify/r
 1. **Add icons to your project**:
 
 ```bash
-# Add single icon
+# Add icons from Iconify
 dioxus-iconify add mdi:home
 
 # Add multiple icons
 dioxus-iconify add mdi:home mdi:account heroicons:arrow-left
+
+# Add local SVG file
+dioxus-iconify add ./assets/logo.svg
+
+# Add all SVGs from a directory (recursively)
+dioxus-iconify add ./assets/icons/
+
+# Mix Iconify and local icons
+dioxus-iconify add mdi:home ./custom/logo.svg heroicons:star
+
+# Skip icons that already exist (don't overwrite)
+dioxus-iconify add --skip-existing ./assets/icons/
 
 # Specify custom output directory
 dioxus-iconify --output src/components/icons add lucide:settings
@@ -270,16 +283,47 @@ Icon names follow the format `collection:icon-name`:
 
 ### `add`
 
-Add icons to your project:
+Add icons to your project from Iconify API or local SVG files:
 
 ```bash
-dioxus-iconify add <icon>...
+dioxus-iconify add [OPTIONS] <ICONS>...
 
-# Examples
+Options:
+  --skip-existing    Skip icons that already exist (don't overwrite)
+
+# Iconify API icons
 dioxus-iconify add mdi:home
 dioxus-iconify add mdi:home mdi:account heroicons:arrow-left
+
+# Local SVG files
+dioxus-iconify add ./logo.svg
+dioxus-iconify add ./assets/icon1.svg ./assets/icon2.svg
+
+# Local directories (scans recursively)
+dioxus-iconify add ./assets/icons/
+dioxus-iconify add ./icons/social/ ./icons/ui/
+
+# Mix both sources
+dioxus-iconify add mdi:home ./custom/logo.svg
+
+# Don't overwrite existing icons
+dioxus-iconify add --skip-existing ./assets/icons/
+
+# Custom output directory
 dioxus-iconify --output src/components/icons add lucide:settings
 ```
+
+#### Local SVG Files
+
+When adding local SVG files:
+
+- **Single files**: Collection name is taken from the parent directory name
+  - `./assets/logo.svg` → collection: `assets`, icon: `logo`
+- **Directories**: Collection name is the directory name, icons are scanned recursively
+  - `./my-icons/home.svg` → `my-icons:home`
+  - `./my-icons/arrows/left.svg` → `my-icons:arrows-left`
+- **SVG processing**: Automatically extracts dimensions from `width`, `height`, and `viewBox` attributes
+- **Missing dimensions**: Defaults to 24x24 if not specified in the SVG
 
 ### `init`
 
@@ -289,11 +333,25 @@ Initialize the icons directory (creates `mod.rs`):
 dioxus-iconify init
 ```
 
+### `list`
+
+List all generated icons:
+
+```bash
+dioxus-iconify list
+```
+
+### `update`
+
+Re-fetch and update all icons from Iconify API:
+
+```bash
+dioxus-iconify update
+```
+
 ### Coming Soon
 
 - `remove` - Remove icons from your project
-- `list` - List all generated icons
-- `update` - Re-fetch and update all icons
 
 ## 🆚 Comparison with Other Solutions
 
@@ -322,6 +380,8 @@ Some Embedded libraries of icons for dioxus:
 2. **Customize the Icon component**: It's generated in your project, so modify it if needed
 3. **Use with Tailwind**: Icon colors work with Tailwind's `text-*` classes via `currentColor`
 4. **Organization**: Icons are automatically grouped by collection in separate files
+5. **Local SVGs**: Use the `--skip-existing` flag when adding directories to avoid overwriting customized icons
+6. **Nested directories**: Icons in subdirectories are automatically named with hyphens (e.g., `arrows/left.svg` becomes `arrows-left`)
 
 ## 🤝 Contributing
 
