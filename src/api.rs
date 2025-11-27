@@ -16,6 +16,19 @@ pub struct IconifyIcon {
     pub view_box: Option<String>,
 }
 
+/// Wrapper for the collection API response
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct IconifyCollectionResponse {
+    #[serde(default)]
+    prefix: Option<String>,
+    #[serde(default)]
+    total: Option<u32>,
+    #[serde(default)]
+    title: Option<String>,
+    #[serde(default)]
+    info: Option<IconifyCollectionInfo>,
+}
+
 /// Collection information from Iconify API
 /// Based on IconifyInfo: https://iconify.design/docs/types/iconify-info.html
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,10 +130,21 @@ impl IconifyClient {
             ));
         }
 
-        let collection_info: IconifyCollectionInfo = response
+        let response_wrapper: IconifyCollectionResponse = response
             .json()
             .await
             .context("Failed to parse collection info response")?;
+
+        // Extract the info field, or create a basic one from the wrapper
+        let collection_info = response_wrapper.info.unwrap_or_else(|| IconifyCollectionInfo {
+            name: response_wrapper.title,
+            author: None,
+            license: None,
+            height: None,
+            category: None,
+            palette: None,
+            total: response_wrapper.total,
+        });
 
         Ok(collection_info)
     }
@@ -285,7 +309,7 @@ mod tests {
         let client = IconifyClient::new().unwrap();
         let info = client.fetch_collection_info(collection).await.unwrap();
 
-        // At minimum, we should get a name
+        // The API should return collection info with at least a name
         assert!(info.name.is_some(), "Collection should have a name");
     }
 }
