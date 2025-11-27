@@ -136,7 +136,7 @@ impl IconifyClient {
             .context("Failed to parse collection info response")?;
 
         // Extract the info field, or create a basic one from the wrapper
-        let collection_info = response_wrapper.info.unwrap_or_else(|| IconifyCollectionInfo {
+        let collection_info = response_wrapper.info.unwrap_or(IconifyCollectionInfo {
             name: response_wrapper.title,
             author: None,
             license: None,

@@ -296,9 +296,7 @@ async fn add_icons(generator: &Generator, inputs: &[String], skip_existing: bool
 }
 
 /// Helper function to process a single SVG file
-fn process_single_svg(
-    svg_path: &Path,
-) -> Result<(IconIdentifier, api::IconifyIcon)> {
+fn process_single_svg(svg_path: &Path) -> Result<(IconIdentifier, api::IconifyIcon)> {
     let collection = svg::extract_collection_name(
         svg_path
             .parent()
