@@ -1,12 +1,16 @@
+mod api;
+mod generator;
+mod naming;
+mod svg;
+
 use anyhow::{Context, Result, anyhow};
 use clap::{Parser, Subcommand};
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
-use dioxus_iconify::api::IconifyClient;
-use dioxus_iconify::generator::Generator;
-use dioxus_iconify::naming::IconIdentifier;
-use dioxus_iconify::svg;
+use api::IconifyClient;
+use generator::Generator;
+use naming::IconIdentifier;
 
 #[derive(Parser)]
 #[command(name = "dioxus-iconify")]
@@ -294,7 +298,7 @@ async fn add_icons(generator: &Generator, inputs: &[String], skip_existing: bool
 /// Helper function to process a single SVG file
 fn process_single_svg(
     svg_path: &Path,
-) -> Result<(IconIdentifier, dioxus_iconify::api::IconifyIcon)> {
+) -> Result<(IconIdentifier, api::IconifyIcon)> {
     let collection = svg::extract_collection_name(
         svg_path
             .parent()

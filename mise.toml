@@ -52,8 +52,16 @@ run = [
 ]
 
 [tasks."test"]
+description = "run tests (for CI)"
 depends = ["test:unit"]
 wait_for = ["info"]
+
+[tasks."test:all"]
+description = "run every tests (longer), including ignored, examples. Requires network connection"
+run = [
+  "cargo --locked nextest run -- --include-ignored",
+  {task="test:demo-app"},
+]
 
 [tasks."test:unit"]
 run = [
