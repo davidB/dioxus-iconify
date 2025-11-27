@@ -93,6 +93,48 @@ fn App() -> Element {
 }
 ```
 
+<details>
+<summary>(Optional) **Create your application iconset with aliases**</summary>
+Advantages: Hide the name of external iconset, ease to maintain and switch.
+
+Create a module to alias other `icons/app.rs`
+
+```rust
+// My application iconset
+// - aliasing icon from other iconset to not expose other iconset outside
+pub use super::heroicons::ArrowLeft;
+pub use super::mdi::Home as MyHome;
+```
+
+Only pub this module in `icons/mod.rs` (to redo after each `dioxus-iconify update`)
+
+```rust
+// ...
+pub mod app;
+mod heroicons;
+mod mdi;
+```
+
+Use icons data from `icons::app::*`;
+
+```rust
+mod icons;
+use crate::icons::{Icon, app};
+
+use dioxus::prelude::*;
+
+fn App() -> Element {
+    rsx! {
+        div {
+            Icon { data: app::MyHome }
+            Icon { data: app::ArrowLeft }
+        }
+    }
+}
+```
+
+</details>
+
 ## 📚 How It Works
 
 ### The Problem

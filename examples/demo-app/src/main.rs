@@ -66,6 +66,20 @@ fn App() -> Element {
                             height: "24",
                         }
                     }
+
+                    div {
+                        h3 { "My Icon alias" }
+                        Icon {
+                            data: app::ArrowLeft,
+                            width: "24",
+                            height: "24",
+                        }
+                        Icon {
+                            data: app::MyHome,
+                            width: "24",
+                            height: "24",
+                        }
+                    }
                 }
             }
         }

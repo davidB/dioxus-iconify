@@ -37,5 +37,6 @@ pub fn Icon(
     }
 }
 
+pub mod app;
 pub mod heroicons;
 pub mod mdi;
