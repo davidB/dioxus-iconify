@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0](https://github.com/davidB/dioxus-iconify/compare/0.2.3...0.3.0) - 2025-11-27
+
+### Added
+
+- preserve visibility of sub modules in `icons/mod.rs`
+- add information (license, author,...) about the icon collections
+
+### Other
+
+- how to create application inconset with aliases
+- update sample code in README
+
 ## [0.2.3](https://github.com/davidB/dioxus-iconify/compare/0.2.2...0.2.3) - 2025-11-26
 
 ### Fixed
