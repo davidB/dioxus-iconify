@@ -1,6 +1,6 @@
 # dioxus-iconify
 
-> CLI tool for vendoring [Iconify](https://icon-sets.iconify.design/) icons (material, lucid, heroicons,....) in Dioxus projects
+> CLI tool for importing/vendoring icons from [Iconify](https://icon-sets.iconify.design/) (material, lucid, heroicons,....) or from local SVG files in Dioxus projects.
 
 [![Crates.io](https://img.shields.io/crates/v/dioxus-iconify.svg)](https://crates.io/crates/dioxus-iconify)
 [![License](https://img.shields.io/crates/l/dioxus-iconify)
@@ -69,7 +69,7 @@ dioxus-iconify add --skip-existing ./assets/icons/
 dioxus-iconify --output src/components/icons add lucide:settings
 ```
 
-2. **Use in your Dioxus components**:
+2. **Use in your Dioxus Element**:
 
 ```rust
 mod icons;
@@ -108,7 +108,7 @@ fn App() -> Element {
 
 <details>
 <summary>(Optional) **Create your application iconset with aliases**</summary>
-Advantages: Hide the name of external iconset, ease to maintain and switch.
+Advantages: Hide the name of external iconset / collection, ease maintainance, ease switching and mixing of collections.
 
 Create a module to alias other `icons/app.rs`
 
@@ -116,7 +116,7 @@ Create a module to alias other `icons/app.rs`
 // My application iconset
 // - aliasing icon from other iconset to not expose other iconset outside
 pub use super::heroicons::ArrowLeft;
-pub use super::mdi::Home as MyHome;
+pub use super::mdi::Home as House;
 ```
 
 Only pub this module in `icons/mod.rs` (to redo after each `dioxus-iconify update`)
@@ -139,7 +139,7 @@ use dioxus::prelude::*;
 fn App() -> Element {
     rsx! {
         div {
-            Icon { data: app::MyHome }
+            Icon { data: app::House }
             Icon { data: app::ArrowLeft }
         }
     }
@@ -195,7 +195,7 @@ pub fn Icon(
     #[props(default, into)]
     size: String,
     /// Additional attributes to extend the svg element
-    #[props(extends = GlobalAttributes)]
+    #[props(extends = SvgAttributes)]
     attributes: Vec<Attribute>,
 ) -> Element {
     let (width, height) = if size.is_empty() {
@@ -238,7 +238,7 @@ pub const Home: IconData = IconData {
 
 ## 🎨 Icon Customization
 
-The `Icon` component uses Dioxus 0.7's `extends = GlobalAttributes` pattern, allowing you to override any SVG attribute:
+The `Icon` component uses Dioxus 0.7's `extends = SvgAttributes` pattern, allowing you to override any SVG attribute:
 
 ```rust
 Icon {
