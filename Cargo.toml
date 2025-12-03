@@ -1,6 +1,6 @@
 [package]
 name = "dioxus-iconify"
-version = "0.4.0"
+version = "0.4.1"
 edition = "2024"
 license = "CC0-1.0"
 description = "CLI tool for importing/vendoring icons from [Iconify](https://icon-sets.iconify.design/) (material, lucid, heroicons,....) or from local SVG files in Dioxus projects"
