@@ -17,7 +17,7 @@ pub fn Icon(
     #[props(default, into)]
     size: String,
     /// Additional attributes to extend the svg element
-    #[props(extends = GlobalAttributes)]
+    #[props(extends = SvgAttributes)]
     attributes: Vec<Attribute>,
 ) -> Element {
     let (width, height) = if size.is_empty() {
