@@ -389,7 +389,7 @@ impl Generator {
         content.push_str(&format!("/// Collection: {}\n", collection));
         content.push_str("/// This is a partial import from Iconify\n");
         content.push_str(&format!(
-            "/// Browse icons: https://icon-sets.iconify.design/{}/\n",
+            "/// Browse icons: <https://icon-sets.iconify.design/{}/>\n",
             collection
         ));
 
@@ -886,7 +886,7 @@ pub mod mdi;
             "Should indicate partial import"
         );
         assert!(
-            content.contains("/// Browse icons: https://icon-sets.iconify.design/mdi/"),
+            content.contains("/// Browse icons: <https://icon-sets.iconify.design/mdi/>"),
             "Should include browse URL"
         );
 
